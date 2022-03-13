@@ -1,0 +1,102 @@
+This is a data processing pipeline for TRIBE-seq using paired-end RNA-Seq data. 
+It is mostly based on the broad pipeline for calling SNPs in RNA-Seq with minor changes.
+###################################################################################
+Assuming you get your fastq files from NGS platform, files from each sample should be in the same one folder.  
+
+In this pipline, 2 replicates for each genotype and paired-end sequencing data were used.
+
+
+1.  To process the RNA sequencing data and map the reads to the reference genome and call SNPs against reference genome:
+	
+	In this part, the input fastq file we renamed as 
+	
+						[tissue]_[genotype]_[r1 or r2(r, replicates)]_[1 or 2(paired-end)].fq.gz, eg: leaf_DRB1ADAR_r1_1.fq.gz, leaf_DRB1ADAR_r1_2.fq.gz
+	
+	The [prefix] were named as "[tissue]_[genotype]_[r1 or r2(r, replicates)]_[1 or 2(paired-end)]", eg: leaf_DRB1ADAR_r1
+	
+	run 
+		
+		TRIBEseq_align_&_call_snp.sh leaf_DRB1ADAR_r1_1.fq.gz leaf_DRB1ADAR_r1_2.fq.gz	# Two paired-end fastq files of one replicates were used each time.
+	
+	which will produce:
+	
+	1) the sorted BAM alignments and PCR-duplication-removed sorted BAM alignments in the folder named "[prefix]_TRIBEanalysis" ;
+	2) the alignment information of the input fastq files named "[prefix]_align_summary.txt" in the folder named "align_summary";
+	3) the the number of reads per gene named "[prefix]_featurecounts.txt" and "[prefix]_featurecounts.txt.summary" in the folder named "expression_counts";
+	4) SNPs information named  "[prefix]_against_ref.vcf.gz" in vcf format in the folder named "[prefix]_vcf" and SNPs data summary in the folder named "[prefix]_vcf/[prefix]_against_ref.vcf.stats_plot/";
+
+After processing all fastq files, 
+	
+	1) the alignment informations of all input fastq files were in "align_summary" folder; 
+			run 
+				
+				bash TRIBEseq_alignment_summary.sh 
+			
+			for summarize all the alignments 
+			
+			and the gene expression result of all samples:
+				
+				[tissue]_all_feature.txt
+			
+	2) all vcf files were copied into "TRIBEseq_vcffile" folder; 
+			
+			Then go to step 2.
+
+2.  After edit the name of the vcf files as needed,
+		
+		cd TRIBEseq_vcffile/[tissue]_vcf_analysis/
+	
+	run 
+		
+		bash TRIBEseq_editing_identify.sh input_RBAD1 input_RBAD2 input_RB1 input_RB2 input_AD1 input_AD2	# (RBAD1/2 = DRB1ADAR_against_ref_r1/2.vcf.gz; RB1/2 = DRB1_against_ref_r1/2.vcf.gz; AD1/2 = ADAR_against_ref_r1/2.vcf.gz) 
+	
+	which will generate files in 2 replicates as follows:
+
+		(1) [tissue]_drb1adar_against_ref_drb1_adar_r1/2.vcf/.stats	# vcf files and stats files of 2 OsDRB1-ADARdd-OE replicates containing SNPs without OsDRB1-OE & ADARdd-OE background SNPs
+		(2) [tissue]_drb1adar_against_ref_drb1_adar_r1/2_nucleotide_mutations.vcf	# the nucleotide mutations information of file in (1)
+		(3) [tissue]_drb1adar_against_ref_drb1_adar_r1/2_potential_editing_dp0/10/20/30.vcf/_efficiency	# the potential editing information in read coverage thresholds of 0,10,20,30 and their editing efficiencies information
+		(4) [tissue]_common_editing_information_dp0/10/20/30	# common editing sites and their editing efficiencies in 2 OsDRB1-ADARdd-OE replicates in read coverage thresholds of 0,10,20,30
+		(5) [tissue]_r1/r2_specific_editing_information_dp0/10/20/30	# OsDRB1-ADARdd-OE replicate-specific editing sites and their editing efficiencies in read coverage thresholds of 0,10,20,30
+		(6) a folder named: nucleotide_mutation_summary, containing:
+																	(7) [tissue]_drb1adar_against_ref_drb1_adar_mutations_retained_vs_removed.txt	# the number of each kind of SNPs of OsDRB1-ADARdd-OE lines that retained and removed against control lines (OsDRB1-OE lines and ADAR-OE lines).
+																	(8) [tissue]_replicates_nucleotide_mutation_summary.txt	# the number of SNPs of two replicates of each genotypes. 
+																	
+3.  Then, choose the [threshold] as needed, edit the threshold set up in "TRIBEseq_editing_locate.sh" 
+	run
+	
+		bash TRIBEseq_editing_locate.sh
+		
+	which will produce a folder named "hices_genomic_pos", which contains:
+	
+		(1) [tissue]_usual_hices_dp[threshold]_in_rice_anno_gene/3utr/5utr/cds/exon/intron/repeat/uncommented # [tissue] high-confident editing sites under the read coverage threshold of [threshold] that locate in gene/3'utr/5'utr/cds/exon/intron/repeat/uncommented region of rice genome.
+		(2) [tissue]_uniq_hices_dp[threshold]_in_rice_anno_gene/3utr/5utr/cds/exon/intron/repeat/uncommented # [tissue] unique coordinates and their editing efficiencies of high-confident editing sites under the read coverage threshold of [threshold] that locate in gene/3'utr/5'utr/cds/exon/intron/repeat/uncommented region of rice genome.
+		(3) data_summary_of_[tissue]_usual_hices_dp[threshold]_in_rice_anno_genomic	# summary the number of [tissue] high-confident editing sites under the read coverage threshold of [threshold] that locate in 3'utr/5'utr/cds/intron region of rice genome.
+	
+	then run
+	
+		cd hices_genomic_pos && bash TRIBEseq_repeat_count.sh [tissue]_usual_hices_dp[threshold]_in_rice_anno_repeat
+
+	to calculate the high-confident editing sites that locate in different types of repeat units of rice genome,
+	which produce:
+		
+		(1) data_summary_of_[tissue]_usual_hices_dp[threshold]_in_rice_anno_repeat	# summary the number of [tissue] high-confident editing sites under the read coverage threshold of [threshold] that locate in different types of repeat region of rice genome.
+
+	to calculate the high-confident editing sites that locate in 3utr, 5utr, cds, intron and uncommented region of rice genome that also locate in repeat units of rice genome,
+	which produce:
+	
+		(1) [tissue]_usual_hices_dp[threshold]_in_rice_anno_3utr_repeat/5utr_repeat/cds_repeat/intron_repeat/uncommented_repeat	# [tissue] high-confident editing sites under the read coverage threshold of [threshold] that locate in 3'utr/5'utr/cds/intron/uncommented region of repeat region of rice genome.
+		(2) data_summary_of_[tissue]_usual_hices_dp[threshold]_in_rice_anno_3utr_repeat/5utr_repeat/cds_repeat/intron_repeat/uncommented_repeat	# summary the number of [tissue] high-confident editing sites under the read coverage threshold of [threshold] that locate in 3'utr/5'utr/cds/intron/uncommented region of repeat region of rice genome.
+
+4.  Then, choose the threshold as needed, edit the threshold set up in "TRIBEseq_flank_seq.sh" 
+	run 
+		bash TRIBEseq_flank_seq.sh ,
+	which will produce a folder named "hices_flank_seq" contains:
+	
+		(1) [tissue]_common_editing_information_dp[threshold]_AG/TC_origin_pos	# the coordinates of high-confident A-to-G / T-to-C editing sites under the read coverage threshold of [threshold].
+		(2) [tissue]_hices_5nt_flank.fq	# sequences of 5nt in the flank of the high-confident editing sites under the read coverage threshold of [threshold] in fastq format.
+		(3) [tissue]_hices_250nt_flank_merge.fa	# sequences of 250nt in the flank of the high-confident editing sites under the read coverage threshold of [threshold] that merged if coordinates have overlaps in fasta format
+		(4) a folder named: meme_250nt_merge, containing the results of MEME motif search using file in (3).
+		
+5.	Finally, run R script
+
+To avoid running out of space, you should remove the temporary files that you no longer need.
