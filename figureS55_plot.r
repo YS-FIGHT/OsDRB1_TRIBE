@@ -32,9 +32,9 @@ ggsave("figure_S4C.pdf",width=5,height=5)
 # reference:https://www.jianshu.com/p/eece90bdddf9
 
 countdata<-read.table("leaf_all_feature.txt",skip = 1,sep="\t",header = T,row.names = 1)
-metadata <- countdata[,1:5]#提取基因信息count数据前的几列
-countdata <- countdata[,6:ncol(countdata)]#提取counts数，counts数据主题部分
-prefix<-"couts"#设置输出文件前缀名
+metadata <- countdata[,1:5]
+countdata <- countdata[,6:ncol(countdata)]
+prefix<-"couts"
 #-----TPM Calculation------
 options(scipen = 200)
 kb <- metadata$Length / 1000
