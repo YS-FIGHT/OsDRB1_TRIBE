@@ -199,34 +199,3 @@ colnames(root_dp20_eff) <- c('root_dp20_r1','root_dp20_r2')
 
 
 p_root_dp0_venn/p_root_dp0_common_efficiency
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
